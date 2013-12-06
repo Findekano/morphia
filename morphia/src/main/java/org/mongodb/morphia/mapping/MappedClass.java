@@ -193,7 +193,7 @@ public class MappedClass {
         ReflectionUtils.implementsInterface(field.getType(), Serializable.class)) {
         persistenceFields.add(new MappedField(field, clazz));
       } else {
-        if (mapper.getOptions().defaultMapper != null) {
+        if (mapper.getOptions().getDefaultMapper() != null) {
           persistenceFields.add(new MappedField(field, clazz));
         } else if (log.isWarningEnabled()) {
           log.warning(

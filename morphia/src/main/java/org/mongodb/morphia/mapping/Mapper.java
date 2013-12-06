@@ -103,22 +103,26 @@ public class Mapper {
     //A general cache of instances of classes; used by MappedClass for EntityListener(s)
     final Map<Class, Object> instanceCache = new ConcurrentHashMap();
 
-    private MapperOptions opts = new MapperOptions();
+    private MapperOptions opts;
 
     // TODO: make these configurable
     final LazyProxyFactory proxyFactory = LazyFeatureDependencies.createDefaultProxyFactory();
     final DatastoreProvider datastoreProvider = new DefaultDatastoreProvider();
-    final DefaultConverters converters = new DefaultConverters();
+    final DefaultConverters converters;
 
     public Mapper() {
-        converters.setMapper(this);
+        this(new MapperOptions());
     }
 
     public Mapper(final MapperOptions opts) {
-        this();
-        this.opts = opts;
+        this(new DefaultConverters(), opts);
     }
 
+    public Mapper(final DefaultConverters converters, final MapperOptions opts) {
+        this.opts = opts;
+        this.converters = converters;
+        this.converters.setMapper(this);
+    }
     /**
      * <p> Adds an {@link EntityInterceptor} </p>
      */
@@ -595,13 +599,13 @@ public class Mapper {
     private void readMappedField(final DBObject dbObject, final MappedField mf, final Object entity, final EntityCache cache) {
         if (mf.hasAnnotation(Property.class) || mf.hasAnnotation(Serialized.class) || mf.isTypeMongoCompatible() || converters
             .hasSimpleValueConverter(mf)) {
-            opts.valueMapper.fromDBObject(dbObject, mf, entity, cache, this);
+            opts.getValueMapper().fromDBObject(dbObject, mf, entity, cache, this);
         } else if (mf.hasAnnotation(Embedded.class)) {
-            opts.embeddedMapper.fromDBObject(dbObject, mf, entity, cache, this);
+            opts.getEmbeddedMapper().fromDBObject(dbObject, mf, entity, cache, this);
         } else if (mf.hasAnnotation(Reference.class)) {
-            opts.referenceMapper.fromDBObject(dbObject, mf, entity, cache, this);
+            opts.getReferenceMapper().fromDBObject(dbObject, mf, entity, cache, this);
         } else {
-            opts.defaultMapper.fromDBObject(dbObject, mf, entity, cache, this);
+            opts.getDefaultMapper().fromDBObject(dbObject, mf, entity, cache, this);
         }
     }
 
@@ -624,14 +628,14 @@ public class Mapper {
 
         if (Property.class.equals(annType) || Serialized.class.equals(annType) || mf.isTypeMongoCompatible() ||
             (converters.hasSimpleValueConverter(mf) || (converters.hasSimpleValueConverter(mf.getFieldValue(entity))))) {
-            opts.valueMapper.toDBObject(entity, mf, dbObject, involvedObjects, this);
+            opts.getValueMapper().toDBObject(entity, mf, dbObject, involvedObjects, this);
         } else if (Reference.class.equals(annType)) {
-            opts.referenceMapper.toDBObject(entity, mf, dbObject, involvedObjects, this);
+            opts.getReferenceMapper().toDBObject(entity, mf, dbObject, involvedObjects, this);
         } else if (Embedded.class.equals(annType)) {
-            opts.embeddedMapper.toDBObject(entity, mf, dbObject, involvedObjects, this);
+            opts.getEmbeddedMapper().toDBObject(entity, mf, dbObject, involvedObjects, this);
         } else {
-            log.debug("No annotation was found, using default mapper " + opts.defaultMapper + " for " + mf);
-            opts.defaultMapper.toDBObject(entity, mf, dbObject, involvedObjects, this);
+            log.debug("No annotation was found, using default mapper " + opts.getDefaultMapper() + " for " + mf);
+            opts.getDefaultMapper().toDBObject(entity, mf, dbObject, involvedObjects, this);
         }
 
     }
